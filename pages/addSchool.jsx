@@ -13,34 +13,33 @@ export default function AddSchool() {
   const [msg, setMsg] = useState("");
   const [preview, setPreview] = useState(null);
 
-  const onSubmit = async (data) => {
-    try {
-      setLoading(true);
-      setMsg("");
-      const formData = new FormData();
-      Object.entries(data).forEach(([k, v]) => {
-        if (k === "image") {
-          if (v && v[0]) formData.append("image", v[0]);
-        } else {
-          formData.append(k, v);
-        }
-      });
+const onSubmit = async (data) => {
+  try {
+    setLoading(true);
+    setMsg("");
 
-      const res = await fetch("/api/addSchool", {
-        method: "POST",
-        body: formData,
-      });
-      const out = await res.json();
-      if (!res.ok) throw new Error(out.error || "Failed to add");
-      setMsg("✅ School added successfully!");
-      setPreview(null);
-      reset();
-    } catch (e) {
-      setMsg(`❌ ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Remove file from payload before sending
+    const { image, ...rest } = data;
+
+    const res = await fetch("/api/addSchool", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rest),
+    });
+
+    const out = await res.json();
+    if (!res.ok) throw new Error(out.error || "Failed to add");
+
+    setMsg("✅ School added successfully!");
+    setPreview(null);
+    reset();
+  } catch (e) {
+    setMsg(`❌ ${e.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-black flex items-center justify-center px-4">

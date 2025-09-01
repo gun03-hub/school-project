@@ -1,28 +1,10 @@
 // pages/api/addSchool.js
-import { IncomingForm } from "formidable";
-import pkg from "pg";
+import { Pool } from "pg";
 
-const { Pool } = pkg;
-
-// Create PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // Required for Render DB
+  ssl: { rejectUnauthorized: false },
 });
-
-export const config = {
-  api: { bodyParser: false }, // required for formidable
-};
-
-// Convert formidable parse to promise
-const parseForm = (req) =>
-  new Promise((resolve, reject) => {
-    const form = new IncomingForm({ multiples: false, maxFileSize: 10 * 1024 * 1024 });
-    form.parse(req, (err, fields, files) => {
-      if (err) reject(err);
-      else resolve({ fields, files });
-    });
-  });
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -30,59 +12,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fields, files } = await parseForm(req);
-    const { name, address, city, state, contact, email_id, board, website } = fields;
+    const { name, address, city, state, contact, email_id, board, website } = req.body;
 
-    // Basic validations
     if (!name || !address || !city || !state || !contact || !email_id || !board) {
       return res.status(400).json({ error: "All required fields must be filled" });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(String(email_id))) {
-      return res.status(400).json({ error: "Invalid email" });
-    }
-
-    // Handle image upload (optional, needs cloud storage for persistence)
-    let imageRelPath = "";
-    const imageFile = Array.isArray(files.image) ? files.image[0] : files.image;
-    if (imageFile && imageFile.filepath) {
-      imageRelPath = imageFile.originalFilename || "";
-    }
-
-    // Prevent duplicates: same name + address
+    // Check duplicates
     const existing = await pool.query(
       "SELECT id FROM schools WHERE name = $1 AND address = $2",
       [name, address]
     );
 
     if (existing.rows.length > 0) {
-      return res
-        .status(400)
-        .json({ error: "School already exists with this name and address" });
+      return res.status(400).json({ error: "School already exists" });
     }
 
-    // Insert into PostgreSQL
     await pool.query(
-      `INSERT INTO schools 
-       (name, address, city, state, contact, email_id, board, website, image) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        name,
-        address,
-        city,
-        state,
-        contact,
-        email_id,
-        board,
-        website || "",
-        imageRelPath,
-      ]
+      `INSERT INTO schools (name, address, city, state, contact, email_id, board, website)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [name, address, city, state, contact, email_id, board, website || ""]
     );
 
     return res.status(200).json({ message: "School added successfully" });
   } catch (err) {
-    console.error("❌ Error in addSchool:", err);
+    console.error("Error adding school:", err);
     return res.status(500).json({ error: "Server error" });
   }
 }

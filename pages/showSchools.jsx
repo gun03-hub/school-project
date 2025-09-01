@@ -29,12 +29,18 @@ export default function ShowSchools() {
 
   const boardOptions = ["CBSE", "ICSE", "IB", "Cambridge", "State Board"];
 
+  // Utility: normalize website URL
+  const formatUrl = (url) => {
+    if (!url) return null;
+    return url.startsWith("http") ? url : `https://${url}`;
+  };
+
   // Fetch schools submitted via /addSchool
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch("/api/getSchools"); // backend should return all added schools
+        const res = await fetch("/api/getSchools");
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body?.error || `HTTP ${res.status}`);
@@ -63,7 +69,11 @@ export default function ShowSchools() {
     }
     if (city) {
       result = result.filter(
-        (s) => s.city?.toLowerCase() === city.toLowerCase()
+        (s) =>
+          (s.city || "")
+            .toLowerCase()
+            .replace("new delhi", "delhi") ===
+          city.toLowerCase().replace("new delhi", "delhi")
       );
     }
     if (board) {
@@ -157,7 +167,7 @@ export default function ShowSchools() {
                   loading="lazy"
                 />
               ) : (
-                <span className="text-gray-500">No Image</span>
+                <span className="text-4xl text-gray-400">🏫</span>
               )}
             </div>
             <div className="p-4">
@@ -169,7 +179,9 @@ export default function ShowSchools() {
               </p>
               <p className="text-gray-500 text-sm mt-1">{s.city || ""}</p>
               {s.board && (
-                <p className="text-xs mt-2 font-medium text-blue-600">{s.board}</p>
+                <p className="text-xs mt-2 font-medium text-blue-600">
+                  {s.board}
+                </p>
               )}
             </div>
           </article>
@@ -177,98 +189,102 @@ export default function ShowSchools() {
       </div>
 
       {/* Overlay Card */}
-     {selectedSchool && (
-  <>
-    {/* Floating Card */}
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50 px-4"
-      onClick={() => setSelectedSchool(null)}
-    >
-      <div
-        className="bg-white rounded-xl shadow-lg max-w-2xl w-full p-6 transform transition-transform duration-300 scale-95 opacity-0 animate-fadeIn overflow-y-auto max-h-[90vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-2xl font-bold text-black">{selectedSchool.name}</h2>
-          <button
-            className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+      {selectedSchool && (
+        <>
+          {/* Floating Card */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 flex items-center justify-center z-50 px-4"
             onClick={() => setSelectedSchool(null)}
           >
-            &times;
-          </button>
-        </div>
+            <div
+              className="bg-white rounded-xl shadow-lg max-w-2xl w-full p-6 transform transition-transform duration-300 scale-95 opacity-0 animate-fadeIn overflow-y-auto max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold text-black">
+                  {selectedSchool.name}
+                </h2>
+                <button
+                  className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+                  onClick={() => setSelectedSchool(null)}
+                >
+                  &times;
+                </button>
+              </div>
 
-        {selectedSchool.image && (
-          <img
-            src={selectedSchool.image}
-            alt={selectedSchool.name}
-            className="w-full h-64 object-cover rounded-lg mb-4"
-          />
-        )}
+              {selectedSchool.image && (
+                <img
+                  src={selectedSchool.image}
+                  alt={selectedSchool.name}
+                  className="w-full h-64 object-cover rounded-lg mb-4"
+                />
+              )}
 
-        <p className="text-gray-700 mb-2">
-          <strong>Address:</strong> {selectedSchool.address || "N/A"}
-        </p>
-        <p className="text-gray-700 mb-2">
-          <strong>City:</strong> {selectedSchool.city || "N/A"}
-        </p>
-        <p className="text-gray-700 mb-2">
-          <strong>State:</strong> {selectedSchool.state || "N/A"}
-        </p>
-        <p className="text-gray-700 mb-2">
-          <strong>Contact:</strong> {selectedSchool.contact || "N/A"}
-        </p>
-        <p className="text-gray-700 mb-2">
-          <strong>Email:</strong> {selectedSchool.email || "N/A"}
-        </p>
-        <p className="text-gray-700 mb-2">
-  <strong>Website:</strong>{" "}
-  {selectedSchool.website ? (
-    <a
-      href={selectedSchool.website}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-blue-600 hover:underline"
-    >
-      {selectedSchool.website}
-    </a>
-  ) : (
-    "N/A"
-  )}
-</p>
+              <p className="text-gray-700 mb-2">
+                <strong>Address:</strong> {selectedSchool.address || "N/A"}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>City:</strong> {selectedSchool.city || "N/A"}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>State:</strong> {selectedSchool.state || "N/A"}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>Contact:</strong> {selectedSchool.contact || "N/A"}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>Email:</strong> {selectedSchool.email_id || "N/A"}
+              </p>
+              <p className="text-gray-700 mb-2">
+                <strong>Website:</strong>{" "}
+                {selectedSchool.website ? (
+                  <a
+                    href={formatUrl(selectedSchool.website)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {selectedSchool.website}
+                  </a>
+                ) : (
+                  "N/A"
+                )}
+              </p>
 
-        {selectedSchool.board && (
-          <p className="text-gray-700 mb-2">
-            <strong>Board:</strong> {selectedSchool.board}
-          </p>
-        )}
+              {selectedSchool.board && (
+                <p className="text-gray-700 mb-2">
+                  <strong>Board:</strong> {selectedSchool.board}
+                </p>
+              )}
 
-        {selectedSchool.description && (
-          <p className="text-gray-700 mt-4">
-            <strong>Description:</strong> {selectedSchool.description}
-          </p>
-        )}
-      </div>
-    </div>
+              {selectedSchool.description && (
+                <p className="text-gray-700 mt-4">
+                  <strong>Description:</strong> {selectedSchool.description}
+                </p>
+              )}
+            </div>
+          </div>
 
-    {/* Inline CSS for animation */}
-    <style jsx>{`
-      @keyframes fadeIn {
-        0% {
-          opacity: 0;
-          transform: scale(0.95);
-        }
-        100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-      }
-      .animate-fadeIn {
-        animation: fadeIn 0.3s forwards;
-      }
-    `}</style>
-  </>
-)}
+          {/* Inline CSS for animation */}
+          <style jsx>{`
+            @keyframes fadeIn {
+              0% {
+                opacity: 0;
+                transform: scale(0.95);
+              }
+              100% {
+                opacity: 1;
+                transform: scale(1);
+              }
+            }
+            .animate-fadeIn {
+              animation: fadeIn 0.3s forwards;
+            }
+          `}</style>
+        </>
+      )}
     </div>
   );
 }
